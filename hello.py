@@ -3,12 +3,13 @@ from flask import Flask, request, flash, url_for, redirect, \
      render_template, abort
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import event
+from elasticsearch import Elasticsearch
 
 
 app = Flask(__name__)
 app.config.from_pyfile('hello.cfg')
 db = SQLAlchemy(app)
-
+es = Elasticsearch()
 
 class Model2ES(db.Model):
     __abstract__ = True
@@ -34,8 +35,18 @@ def receive_after_update(mapper, connection, target):
     "listen for the 'after_update' event"
     # ... (event handling logic) ...
     # print('this is mapper', mapper, type(mapper), dir(mapper))
+    # for x in dir(mapper):
+    #     if x.startswith('_'):
+    #         continue
+    #     print(x, getattr(mapper, x))
+    table_name = mapper.mapped_table.name
+    body = {}
+    for x in mapper.attrs:
+        print(x, type(x))
     for name in mapper.c.keys():
         print(name, getattr(target, name))
+        body[name] = getattr(target, name)
+    # es.index
 
 
 event.listen(Model2ES, 'after_update', receive_after_update, propagate=True)
