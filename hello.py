@@ -2,6 +2,7 @@ from datetime import datetime
 from flask import Flask, request, flash, url_for, redirect, \
      render_template, abort
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import event
 
 
 app = Flask(__name__)
@@ -9,7 +10,11 @@ app.config.from_pyfile('hello.cfg')
 db = SQLAlchemy(app)
 
 
-class Todo(db.Model):
+class Model2ES(db.Model):
+    __abstract__ = True
+
+
+class Todo(Model2ES):
     __tablename__ = 'todos'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(60))
@@ -23,6 +28,18 @@ class Todo(db.Model):
         self.text = text
         self.done = False
         self.pub_date = datetime.utcnow()
+
+
+def receive_after_update(mapper, connection, target):
+    "listen for the 'after_update' event"
+    # ... (event handling logic) ...
+    # print('this is mapper', mapper, type(mapper), dir(mapper))
+    for name in mapper.c.keys():
+        print(name, getattr(target, name))
+
+
+event.listen(Model2ES, 'after_update', receive_after_update, propagate=True)
+
 
 @app.route('/create_all')
 def create_all():
