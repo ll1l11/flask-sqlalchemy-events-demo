@@ -22,7 +22,7 @@ class Todo(Model2ES):
     text = db.Column(db.String(191))
     done = db.Column(db.Boolean)
     pub_date = db.Column(db.DateTime)
-    update_date = db.Column(db.DateTime, index=True, default=datetime.now, onupdate=datetime.now)
+    update_date = db.Column(db.DateTime, index=True, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def __init__(self, title, text):
         self.title = title
@@ -39,14 +39,22 @@ def receive_after_update(mapper, connection, target):
     #     if x.startswith('_'):
     #         continue
     #     print(x, getattr(mapper, x))
-    table_name = mapper.mapped_table.name
+    tablename = mapper.mapped_table.name
     body = {}
     for x in mapper.attrs:
         print(x, type(x))
     for name in mapper.c.keys():
         print(name, getattr(target, name))
         body[name] = getattr(target, name)
-    # es.index
+
+    print('this is tablename', tablename)
+    print('this is body', body)
+    # 使用es的接口更新es的数据
+    index = 'logstash-todos-v2'
+    doc_type = 'doc'
+    id = target.id
+    res = es.index(index=index, doc_type=doc_type, id=id, body=body)
+    print('this is es index res', res)
 
 
 event.listen(Model2ES, 'after_update', receive_after_update, propagate=True)
