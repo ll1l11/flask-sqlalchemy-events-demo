@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Flask, request, flash, url_for, redirect, \
      render_template, abort
 from flask_sqlalchemy import SQLAlchemy
@@ -22,16 +22,16 @@ class Todo(Model2ES):
     text = db.Column(db.String(191))
     done = db.Column(db.Boolean)
     pub_date = db.Column(db.DateTime)
-    update_date = db.Column(db.DateTime, index=True, default=datetime.utcnow, onupdate=datetime.utcnow)
+    update_date = db.Column(db.DateTime, index=True, default=datetime.now, onupdate=datetime.now)
 
     def __init__(self, title, text):
         self.title = title
         self.text = text
         self.done = False
-        self.pub_date = datetime.utcnow()
+        self.pub_date = datetime.now()
 
 
-def receive_after_update(mapper, connection, target):
+def receive_insert_and_update(mapper, connection, target):
     "listen for the 'after_update' event"
     # ... (event handling logic) ...
     # print('this is mapper', mapper, type(mapper), dir(mapper))
@@ -40,24 +40,27 @@ def receive_after_update(mapper, connection, target):
     #         continue
     #     print(x, getattr(mapper, x))
     tablename = mapper.mapped_table.name
-    body = {}
-    for x in mapper.attrs:
-        print(x, type(x))
+    doc = {}
     for name in mapper.c.keys():
-        print(name, getattr(target, name))
-        body[name] = getattr(target, name)
+        v = getattr(target, name)
+        if isinstance(v, datetime):
+            v = v.astimezone(timezone.utc)
+        doc[name] = v
 
-    print('this is tablename', tablename)
-    print('this is body', body)
     # 使用es的接口更新es的数据
-    index = 'logstash-todos-v2'
+    index = f'logstash-{tablename}-v2'
+    print('this is index', index)
     doc_type = 'doc'
     id = target.id
-    res = es.index(index=index, doc_type=doc_type, id=id, body=body)
+    res = es.index(index=index, doc_type=doc_type, id=id, body=doc)
     print('this is es index res', res)
 
 
-event.listen(Model2ES, 'after_update', receive_after_update, propagate=True)
+# delete?
+
+
+event.listen(Model2ES, 'after_update', receive_insert_and_update, propagate=True)
+event.listen(Model2ES, 'after_insert', receive_insert_and_update, propagate=True)
 
 
 @app.route('/create_all')
