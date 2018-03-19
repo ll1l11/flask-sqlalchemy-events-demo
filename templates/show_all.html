@@ -18,6 +18,7 @@
         <td>{{ todo.update_date }}
         <td><input type=checkbox name=done.{{ todo.id }}{{ " checked" if todo.done }}>
         <td colspan=3>{{ todo.text }}</td>
+      </tr>
       {%- endfor %}
     </table>
     <p>
