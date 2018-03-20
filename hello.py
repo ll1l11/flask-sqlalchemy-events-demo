@@ -31,6 +31,10 @@ class Todo(Model2ES):
         self.pub_date = datetime.now()
 
 
+def get_es_index(tablename):
+    return f'logstash-{tablename}-v2'
+
+
 def receive_insert_and_update(mapper, connection, target):
     "listen for the 'after_update' event"
     # ... (event handling logic) ...
@@ -48,7 +52,7 @@ def receive_insert_and_update(mapper, connection, target):
         doc[name] = v
 
     # 使用es的接口更新es的数据
-    index = f'logstash-{tablename}-v2'
+    index = get_es_index(tablename)
     print('this is index', index)
     doc_type = 'doc'
     id = target.id
@@ -56,11 +60,19 @@ def receive_insert_and_update(mapper, connection, target):
     print('this is es index res', res)
 
 
-# delete?
+def receive_delete(mapper, connection, target):
+    print('this is receive_delete')
+    tablename = mapper.mapped_table.name
+    index = get_es_index(tablename)
+    doc_type = 'doc'
+    id = target.id
+    res = es.delete(index=index, doc_type=doc_type, id=id)
+    print('this is delete index', res)
 
 
 event.listen(Model2ES, 'after_update', receive_insert_and_update, propagate=True)
 event.listen(Model2ES, 'after_insert', receive_insert_and_update, propagate=True)
+event.listen(Model2ES, 'after_delete', receive_delete, propagate=True)
 
 
 @app.route('/create_all')
@@ -99,6 +111,15 @@ def update_done():
     flash('Updated status')
     db.session.commit()
     return redirect(url_for('show_all'))
+
+
+@app.route('/todos/<int:todo_id>/delete', methods=['GET'])
+def delete(todo_id):
+    todo = Todo.query.get(todo_id)
+    print('this is todo', todo)
+    db.session.delete(todo)
+    db.session.commit()
+    return '123'
 
 
 if __name__ == '__main__':

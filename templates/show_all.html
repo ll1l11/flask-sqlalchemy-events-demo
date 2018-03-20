@@ -10,6 +10,7 @@
         <th>update_date
         <th>Done?
         <th>text
+        <th>操作
       {%- for todo in todos %}
       <tr class=title>
         <td>{{ todo.id }}
@@ -17,7 +18,8 @@
         <td>{{ todo.pub_date.strftime('%Y-%m-%d %H:%M') }}
         <td>{{ todo.update_date }}
         <td><input type=checkbox name=done.{{ todo.id }}{{ " checked" if todo.done }}>
-        <td colspan=3>{{ todo.text }}</td>
+        <td>{{ todo.text }}
+        <td><a href="{{url_for('delete', todo_id=todo.id)}}">delete</a>
       </tr>
       {%- endfor %}
     </table>
