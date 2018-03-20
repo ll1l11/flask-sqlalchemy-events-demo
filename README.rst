@@ -1,7 +1,7 @@
 同步MySQL表到Elastcisearch
 ==========================
 
-使用pipenv_管理依赖
+使用 pipenv_ 管理依赖
 
 安装依赖::
 
@@ -20,7 +20,7 @@
 
     localhost:5000/create_all
 
-默认使用localhost无密码的elasticsearch_.
+默认使用localhost无密码的 elasticsearch_.
 
 
 .. _pipenv: https://docs.pipenv.org/
